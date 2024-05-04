@@ -1,8 +1,11 @@
 from imu import MPU6050
 from time import sleep
 from machine import Pin, I2C
+import time
 
-
+led= Pin(13,Pin.OUT)
+led2= Pin(14,Pin.OUT)
+led3= Pin(12,Pin.OUT)
 
 
 
@@ -35,6 +38,25 @@ while True:
     file.write(str(count)+","+str(ax)+","+str(ay)+","+str(az)+","+str(gx)+","+str(gy)+","+str(gz)+","+str(tem)+"\n")
     file.flush()
     count+=1
-    
+
+   
+#test gyro
+    if ax>=0.7:
+        led.on()
+        
+    else:
+         led.off()
+
+    if ay>=0.7:
+        led2.on()
+        print("forward")
+    else:
+         led2.off()
+
+    if az>=0.7:
+        led3.on()
+        
+    else:
+         led3.off()
     sleep(1)
 
