@@ -156,4 +156,3 @@ while True:
     else:
          led3.off()
     sleep(1)
-
