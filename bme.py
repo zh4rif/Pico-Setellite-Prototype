@@ -5,8 +5,8 @@ from time import sleep
 from machine import Pin, I2C
 import bme280
 
-ssid = 'Suy' #Your network name
-password = '2ringgit' #Your WiFi password
+ssid = 'FTKEE STEM LAB' #Your network name
+password = 'steml@b2023' #Your WiFi password
 
 #initialize I2C 
 i2c=I2C(0,sda=Pin(0), scl=Pin(1), freq=400000)
