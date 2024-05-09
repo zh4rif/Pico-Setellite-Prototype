@@ -5,8 +5,8 @@ from time import sleep
 from machine import Pin, I2C
 import bme280
 
-ssid = 'Xiaomi 12 Lite' #Your network name
-password = '88888888' #Your WiFi password
+ssid = 'Suy' #Your network name
+password = '2ringgit' #Your WiFi password
 
 #initialize I2C 
 i2c=I2C(0,sda=Pin(0), scl=Pin(1), freq=400000)
