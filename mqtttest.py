@@ -30,7 +30,7 @@ print(f'Connected on {ip}')
 
 mqtt_host = "io.adafruit.com"
 mqtt_username = "zh4rif098"  # Your Adafruit IO username
-mqtt_password = "aio_hyfk73yatNmyW46A2j6iQEV7qRLU"  # Adafruit IO Key
+mqtt_password = ""  # Adafruit IO Key
 temp_feed = "zh4rif098/feeds/temperature"  # The MQTT topic for your Adafruit IO Feed
 humidity_feed = "zh4rif098/feeds/humidity"
 pressure_feed = "zh4rif098/feeds/pressure"
@@ -125,10 +125,10 @@ try:
     mqtt_client.publish(humidity_feed, humidity)
 
 
-    count = 0  
+      
 
- 
-    time.sleep(3)
+    
+    time.sleep(5)
     
 except Exception as e:
         print("Failed to send data:", e)
