@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .data-display {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sensor Data Dashboard</h1>
+        <div class="data-display">
+            <h2>Accelerometer</h2>
+            <p>X: <span id="ax">0</span></p>
+            <p>Y: <span id="ay">0</span></p>
+            <p>Z: <span id="az">0</span></p>
+        </div>
+        <div class="data-display">
+            <h2>Gyroscope</h2>
+            <p>X: <span id="gx">0</span></p>
+            <p>Y: <span id="gy">0</span></p>
+            <p>Z: <span id="gz">0</span></p>
+        </div>
+        <div class="data-display">
+            <h2>Temperature</h2>
+            <p><span id="tem">0</span> °C</p>
+        </div>
+        <div class="data-display">
+            <h2>Humidity</h2>
+            <p><span id="humidity">0</span> %</p>
+        </div>
+        <div class="data-display">
+            <h2>Pressure</h2>
+            <p><span id="pressure">0</span> hPa</p>
+        </div>
+    </div>
+
+    <script>
+        function fetchData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("ax").innerHTML = data.accX;
+                    document.getElementById("ay").innerHTML = data.accY;
+                    document.getElementById("az").innerHTML = data.accZ;
+                    document.getElementById("gx").innerHTML = data.gyroX;
+                    document.getElementById("gy").innerHTML = data.gyroY;
+                    document.getElementById("gz").innerHTML = data.gyroZ;
+                    document.getElementById("tem").innerHTML = data.temperature;
+                    document.getElementById("humidity").innerHTML = data.humidity;
+                    document.getElementById("pressure").innerHTML = data.pressure;
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        setInterval(fetchData, 100); // Fetch data every 5 seconds
+    </script>
+</body>
+</html>
