@@ -3,8 +3,10 @@ from time import sleep
 from machine import Pin, I2C
 import socket
 import network
-import bme280
+import bme280 
 import requests
+import time
+from math import sin
 from umqtt.simple import MQTTClient
 led = Pin(13, Pin.OUT)
 led2 = Pin(14, Pin.OUT)
@@ -28,10 +30,10 @@ print(f'Connected on {ip}')
 
 mqtt_host = "io.adafruit.com"
 mqtt_username = "zh4rif098"  # Your Adafruit IO username
-mqtt_password = "aio_hyfk73yatNmyW46A2j6iQEV7qRLU"  # Adafruit IO Key
-temp_feed = "Temperature"  # The MQTT topic for your Adafruit IO Feed
-humid_feed = "Humudity"
-pressure_feed = "Pressure"
+mqtt_password = ""  # Adafruit IO Key
+temp_feed = "zh4rif098/feeds/temperature"  # The MQTT topic for your Adafruit IO Feed
+humidity_feed = "zh4rif098/feeds/humidity"
+pressure_feed = "zh4rif098/feeds/pressure"
 
 mqtt_client_id = "aio_hyfk73yatNmyW46A2j6iQEV7qRLU"
 
@@ -96,33 +98,12 @@ def serve(connection):
             response = webpage(data)
             client.send("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n".encode())
             client.send(response.encode())
+            client.close()
         
-        client.close()
-        
-        
-while True:
-    cl, addr = s.accept()
-    cl_file = cl.makefile('rwb', 0)
-    while True:
-        line = cl_file.readline()
-        if not line or line == b'\r\n':
-            break
-    response = html
+try:        
+  while True:
 
-    cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-    cl.send(response)
-    cl.close()
-    
     sensor_data = get_sensor_data()
-    
-    try:
-        response = requests.post(server_url, json=sensor_data)
-        print("Data sent successfully")
-        print("Response:", response.text)
-        response.close()
-    except Exception as e:
-        print("Failed to send data:", e)
-    
     ax = round(imu.accel.x, 2)
     ay = round(imu.accel.y, 2)
     az = round(imu.accel.z, 2)
@@ -140,20 +121,14 @@ while True:
     pressure_message=str(pressure)
     temp=temp_message.replace('C','') #Remove "C" Symbol
     mqtt_client.publish(temp_feed, temp) #Publish
-    mqtt_client.publish(pressure_feed_feed, pressure)
-    mqtt_client.publish(humid_feed_feed, humidity)
+    mqtt_client.publish(pressure_feed, pressure)
+    mqtt_client.publish(humidity_feed, humidity)
 
 
-    count = 0  # Resetting count here, if it's meant to count sensor readings.
+      
 
-    file = open("data.txt", "a")
-    file.write(str(count) + "," + str(ax) + "," + str(ay) + "," + str(az) + "," + str(gx) + "," + str(gy) + "," +
-               str(gz) + "," + str(tem) + "\n")
-    file.close()
-
-    # GPIO control based on sensor readings
-    led.value(ax >= 0.7)
-    led2.value(ay >= 0.7)
-    led3.value(az >= 0.7)
-
-    sleep(1)
+    
+    time.sleep(5)
+    
+except Exception as e:
+        print("Failed to send data:", e)
