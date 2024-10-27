@@ -66,13 +66,16 @@ current_label = tk.Label(frame_left, text="Current: N/A")
 current_label.pack()
 power_label = tk.Label(frame_left, text="Power Consumption: N/A")
 power_label.pack()
+# Canvas for pressure gauge
+gauge_canvas = tk.Canvas(frame_right, width=400, height=400, bg="white")
+gauge_canvas.pack()
 
 
 
 
 # Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("sdp-422806-11c1654b7049.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("sdp-422806-54b8649a0830.json", scope)
 client = gspread.authorize(creds)
 spreadsheet = client.open("Satelite_data").sheet1  # Open the first sheet
 
