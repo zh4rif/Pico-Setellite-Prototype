@@ -25,6 +25,19 @@ Determine whether onboard processing is necessary for real-time analysis or if r
 # Communication Subsystem: 
 Develop a communication subsystem to transmit data from the satellite to ground stations. This may involve selecting appropriate communication protocols, antennas, and transceiver hardware.
 
+   ```bash
+   python3 -m venv virtual
+   ```
+
+   ```bash
+   source virtual/bin/activate
+   ```
+
+   or for Windows-based machines -
+
+   ```bash
+   .\virtual\Scripts\activate
+   ```
 # Power Management: 
 Implement power management systems to efficiently utilize the limited power available on the satellite. This may include energy harvesting techniques, power regulation circuits, and low-power standby modes.
 
