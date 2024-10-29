@@ -2,6 +2,8 @@
 
 #Upgrade STEM Cube (pico-sattelite) to perform data fusion and analytics, providing enhanced interpretation of environmental data collected from onboard sensors.
 
+## Installation
+
  **Activate virtual environment:**
 
    ```bash
@@ -16,6 +18,11 @@
 
    ```bash
    .\virtual\Scripts\activate
+   ```
+5. **Install the required packages:**
+
+   ```bash
+   pip install mpu6050-raspberrypi smbus2 bme280 gspread oauth2client ttkbootstrap pillow
    ```
 "1 - Sensor Integration
 
