@@ -1,0 +1,166 @@
+import tkinter as tk
+import math
+import time
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from mpu6050 import mpu6050
+from smbus2 import SMBus
+from tkinter import messagebox
+import bme280
+import smbus2
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Initialize MPU6050
+address_mpu6050 = 0x68
+sensor = mpu6050(address_mpu6050)
+
+# MPU6050 Register Addresses
+PWR_MGMT_1 = 0x6B
+ACCEL_XOUT_H = 0x3B
+ACCEL_YOUT_H = 0x3D
+ACCEL_ZOUT_H = 0x3F
+GYRO_XOUT_H = 0x43
+GYRO_YOUT_H = 0x45
+GYRO_ZOUT_H = 0x47
+
+# Initialize BME280
+address_bme280 = 0x76
+bus = smbus2.SMBus(1)
+calibration_params = bme280.load_calibration_params(bus, address_bme280)
+
+# Initialize main window
+root = tk.Tk()
+root.title("Satellite")
+root.geometry("1200x800")
+
+# Create frames for the indicator and the graph
+frame_left = tk.Frame(root, width=400, height=800)
+frame_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+frame_right = tk.Frame(root, width=800, height=800)
+frame_right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+# Canvas for drawing the indicator
+canvas = tk.Canvas(frame_left, width=400, height=400, bg="white")
+canvas.pack()
+
+# Labels for sensor readings
+temp_label = tk.Label(frame_left, text="Temperature:")
+temp_label.pack()
+humidity_label = tk.Label(frame_left, text="Humidity:")
+humidity_label.pack()
+pressure_label = tk.Label(frame_left, text="Pressure:")
+pressure_label.pack()
+accel_label = tk.Label(frame_left, text="Accelerometer:")
+accel_label.pack()
+gyro_label = tk.Label(frame_left, text="Gyroscope:")
+gyro_label.pack()
+weather_label = tk.Label(frame_left, text="Weather: N/A")
+weather_label.pack()
+battery_label = tk.Label(frame_left, text="Battery Level: N/A")
+battery_label.pack()
+
+# Google Sheets setup
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("sdp-422806-11c1654b7049.json", scope)
+client = gspread.authorize(creds)
+spreadsheet = client.open("Satelite_data").sheet1  # Open the first sheet
+
+def read_raw_data(addr):
+    high = bus.read_byte_data(address_mpu6050, addr)
+    low = bus.read_byte_data(address_mpu6050, addr + 1)
+    value = (high << 8) | low
+    if value > 32768:
+        value -= 65536
+    return value
+
+sending_data = False
+
+def toggle_sending_data():
+    global sending_data
+    sending_data = not sending_data
+    if sending_data:
+        start_button.config(text="Stop Sending Data")
+    else:
+        start_button.config(text="Start Sending Data")
+
+def detect_weather(temperature_celsius, humidity, pressure):
+    if temperature_celsius > 25 and humidity > 70:
+        return "Rainy ☂️"
+    elif temperature_celsius < 10:
+        return "Snowy ❄️"
+    elif pressure < 980:
+        return "Stormy ⛈️"
+    elif pressure > 1020:
+        return "Sunny ☀️"
+    else:
+        return "Clear 🌤️"
+
+def get_battery_level():
+    battery_level = 75  # Assume battery level is 75% for demonstration
+    return battery_level
+
+def check_battery_level():
+    battery_level = get_battery_level()
+    battery_label.config(text=f"Battery Level: {battery_level}%")
+    if battery_level < 20:
+        messagebox.showwarning("Low Battery", f"Attention: Battery level is {battery_level}%. Please charge your device!")
+    root.after(60000, check_battery_level)  # Check battery level every minute
+
+def update_readings():
+    # Read BME280 sensor data
+    data = bme280.sample(bus, address_bme280, calibration_params)
+    temperature_celsius = data.temperature
+    humidity = data.humidity
+    pressure = data.pressure
+    
+    # Read MPU6050 sensor data
+    accel_x = read_raw_data(ACCEL_XOUT_H) / 16384.0
+    accel_y = read_raw_data(ACCEL_YOUT_H) / 16384.0
+    accel_z = read_raw_data(ACCEL_ZOUT_H) / 16384.0
+    gyro_x = read_raw_data(GYRO_XOUT_H) / 131.0
+    gyro_y = read_raw_data(GYRO_YOUT_H) / 131.0
+    gyro_z = read_raw_data(GYRO_ZOUT_H) / 131.0
+
+    # Convert temperature to Fahrenheit
+    temperature_fahrenheit = (temperature_celsius * 9/5) + 32
+
+    # Update labels with sensor data
+    temp_label.config(text=f"Temperature: {temperature_celsius:.2f}°C / {temperature_fahrenheit:.2f}°F")
+    humidity_label.config(text=f"Humidity: {humidity:.2f}%")
+    pressure_label.config(text=f"Pressure: {pressure:.2f} hPa")
+    accel_label.config(text=f"Accelerometer: X={accel_x:.2f}, Y={accel_y:.2f}, Z={accel_z:.2f}")
+    gyro_label.config(text=f"Gyroscope: X={gyro_x:.2f}, Y={gyro_y:.2f}, Z={gyro_z:.2f}")
+    weather = detect_weather(temperature_celsius, humidity, pressure)
+    weather_label.config(text=f"Weather: {weather}")
+    
+    # Update plots
+    update_plots(temperature_celsius, humidity)
+
+    # Send data to Google Sheets if sending_data is True
+    if sending_data:
+        send_to_google_sheets(temperature_celsius, temperature_fahrenheit, humidity, pressure, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z)
+
+    root.after(2000, update_readings)
+
+def send_to_google_sheets(temp_c, temp_f, humidity, pressure, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z):
+    row = [
+        time.strftime("%Y-%m-%d %H:%M:%S"),  # Timestamp
+        temp_c,
+        temp_f,
+        humidity,
+        pressure,
+        accel_x,
+        accel_y,
+        accel_z,
+        gyro_x,
+        gyro_y,
+        gyro_z
+    ]
+    spreadsheet.append_row(row)
+
+def get_mpu_data():
+    accel_data = sensor.get_accel_data()
+    gyro_data = sensor.get_gyro_data()
+
+    # Calculate roll and
