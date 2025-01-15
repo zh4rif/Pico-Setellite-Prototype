@@ -1,0 +1,134 @@
+import serial
+import time
+import tkinter as tk
+from tkinter import ttk
+import math
+
+# Set up the serial connection for the HC-12
+ser = serial.Serial(
+    port='/dev/ttyAMA0',  # Replace with the appropriate port if necessary
+    baudrate=9600,        # Set the baud rate to match your HC-12 configuration
+    timeout=1
+)
+
+def parse_data(data):
+    """Parse received data into variables."""
+    try:
+        data_dict = {}
+        data_pairs = data.split(', ')
+        for pair in data_pairs:
+            if ':' in pair:
+                key, value = pair.split(':', 1)
+                data_dict[key.strip()] = value.strip()
+
+        ax = float(data_dict.get('AX', '0.0'))
+        ay = float(data_dict.get('AY', '0.0'))
+        az = float(data_dict.get('AZ', '0.0'))
+        gx = float(data_dict.get('GX', '0.0'))
+        gy = float(data_dict.get('GY', '0.0'))
+        gz = float(data_dict.get('GZ', '0.0'))
+        imu_temp = float(data_dict.get('IMU_T', '0.0'))
+        bme_temp = float(data_dict.get('BME_T', '0.0').replace('C', ''))
+        pressure = float(data_dict.get('P', '0.0').replace('hPa', ''))
+        humidity = float(data_dict.get('H', '0.0').replace('%', ''))
+        lat = data_dict.get('LAT', 'N/A')
+        lon = data_dict.get('LON', 'N/A')
+        v_bat = float(data_dict.get('V_BAT', '0.0'))
+
+        return ax, ay, az, gx, gy, gz, imu_temp, bme_temp, pressure, humidity, lat, lon, v_bat
+    except Exception as e:
+        return None
+
+def draw_indicator(roll, pitch):
+    """Draw a horizon indicator on the canvas using roll and pitch data."""
+    canvas.delete("all")
+    center_x = 200
+    center_y = 200
+    radius = 150
+
+    pitch_offset = pitch * (radius / 45)  # Reduce the scale for pitch to avoid large movements
+
+    canvas.create_arc(center_x - radius, center_y - radius, center_x + radius, center_y + radius,
+                      start=0, extent=180, fill="blue")
+    canvas.create_arc(center_x - radius, center_y - radius, center_x + radius, center_y + radius,
+                      start=180, extent=180, fill="brown")
+    canvas.create_line(center_x - radius, center_y + pitch_offset,
+                       center_x + radius, center_y + pitch_offset, fill="yellow", width=2)
+
+    for angle in range(-45, 46, 15):
+        rad_angle = math.radians(angle + roll / 2)  # Adjust roll scaling by dividing by 2
+        line_length = 10 if angle % 30 == 0 else 5
+        x_start = center_x + (radius - line_length) * math.sin(rad_angle)
+        y_start = center_y - (radius - line_length) * math.cos(rad_angle)
+        x_end = center_x + radius * math.sin(rad_angle)
+        y_end = center_y - radius * math.cos(rad_angle)
+        canvas.create_line(x_start, y_start, x_end, y_end, fill="white")
+
+    canvas.create_polygon(center_x, center_y - 10, center_x - 10, center_y + 10,
+                          center_x + 10, center_y + 10, fill="orange")
+
+    canvas.create_text(50, 380, text=f"ROLL: {roll:.2f}", fill="black")
+    canvas.create_text(350, 380, text=f"PITCH: {pitch:.2f}", fill="black")
+
+def update_dashboard():
+    """Fetch and display data on the dashboard, including the horizon indicator."""
+    if ser.in_waiting > 0:
+        received_data = ser.readline().decode('utf-8').strip()
+        if received_data:
+            parsed_data = parse_data(received_data)
+            if parsed_data:
+                ax, ay, az, gx, gy, gz, imu_temp, bme_temp, pressure, humidity, lat, lon, v_bat = parsed_data
+                roll = math.atan2(ay, az) * 57.2958
+                pitch = math.atan2(-ax, math.sqrt(ay**2 + az**2)) * 57.2958
+
+                label_ax.config(text=f"AX: {ax}")
+                label_ay.config(text=f"AY: {ay}")
+                label_az.config(text=f"AZ: {az}")
+                label_gx.config(text=f"GX: {gx}")
+                label_gy.config(text=f"GY: {gy}")
+                label_gz.config(text=f"GZ: {gz}")
+                label_imu_temp.config(text=f"IMU Temp: {imu_temp} °C")
+                label_bme_temp.config(text=f"BME Temp: {bme_temp} °C")
+                label_pressure.config(text=f"Pressure: {pressure} hPa")
+                label_humidity.config(text=f"Humidity: {humidity}%")
+                label_lat.config(text=f"Latitude: {lat}")
+                label_lon.config(text=f"Longitude: {lon}")
+                label_v_bat.config(text=f"Battery Voltage: {v_bat} V")
+
+                draw_indicator(roll, pitch)
+    root.after(100, update_dashboard)
+
+# Initialize the Tkinter dashboard
+root = tk.Tk()
+root.title("Pico Satellite Data Dashboard")
+root.geometry("600x400")
+
+canvas = tk.Canvas(root, width=400, height=400, bg="lightgrey")
+canvas.grid(row=0, column=1, rowspan=15)
+
+label_ax = ttk.Label(root, text="AX: --")
+label_ay = ttk.Label(root, text="AY: --")
+label_az = ttk.Label(root, text="AZ: --")
+label_gx = ttk.Label(root, text="GX: --")
+label_gy = ttk.Label(root, text="GY: --")
+label_gz = ttk.Label(root, text="GZ: --")
+label_imu_temp = ttk.Label(root, text="IMU Temp: --")
+label_bme_temp = ttk.Label(root, text="BME Temp: --")
+label_pressure = ttk.Label(root, text="Pressure: --")
+label_humidity = ttk.Label(root, text="Humidity: --")
+label_lat = ttk.Label(root, text="Latitude: --")
+label_lon = ttk.Label(root, text="Longitude: --")
+label_v_bat = ttk.Label(root, text="Battery Voltage: --")
+
+labels = [label_ax, label_ay, label_az, label_gx, label_gy, label_gz,
+          label_imu_temp, label_bme_temp, label_pressure, label_humidity,
+          label_lat, label_lon, label_v_bat]
+
+for i, label in enumerate(labels):
+    label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
+
+update_dashboard()
+
+root.mainloop()
+
+ser.close()
